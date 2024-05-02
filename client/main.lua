@@ -59,41 +59,48 @@ local function shouldHide(option, distance, endCoords, entityHit, entityType, en
         return true
     end
 
-    local bone = entityModel and option.bones or nil
+    local bones = entityModel and option.bones or nil
+    local boneHit = {}
 
-    if bone then
+    if bones then
         ---@cast entityHit number
         ---@cast entityType number
         ---@cast entityModel number
 
-        local _type = type(bone)
+        local _type = type(bones)
 
         if _type == 'string' then
-            local boneId = GetEntityBoneIndexByName(entityHit, bone)
+            local boneId = GetEntityBoneIndexByName(entityHit, bones)
 
             if boneId ~= -1 and #(endCoords - GetEntityBonePosition_2(entityHit, boneId)) <= 2 then
-                bone = boneId
+                boneHit = {
+                    index = boneId,
+                    name = bones,
+                }
             else
                 return true
             end
         elseif _type == 'table' then
             local closestBone, boneDistance
 
-            for j = 1, #bone do
-                local boneId = GetEntityBoneIndexByName(entityHit, bone[j])
+            for j = 1, #bones do
+                local boneId = GetEntityBoneIndexByName(entityHit, bones[j])
 
                 if boneId ~= -1 then
                     local dist = #(endCoords - GetEntityBonePosition_2(entityHit, boneId))
 
                     if dist <= (boneDistance or 1) then
-                        closestBone = boneId
+                        closestBone = {
+                            index = boneId,
+                            name = bones[j],
+                        }
                         boneDistance = dist
                     end
                 end
             end
 
             if closestBone then
-                bone = closestBone
+                boneHit = closestBone
             else
                 return true
             end
@@ -120,7 +127,7 @@ local function shouldHide(option, distance, endCoords, entityHit, entityType, en
     end
 
     if option.canInteract then
-        local success, resp = pcall(option.canInteract, entityHit, distance, endCoords, option.name, bone)
+        local success, resp = pcall(option.canInteract, entityHit, distance, endCoords, option.name, boneHit.index, boneHit.name)
         return not success or not resp
     end
 end
